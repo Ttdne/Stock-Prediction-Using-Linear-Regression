@@ -2,10 +2,12 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 
 # Tải dữ liệu lịch sử của cổ phiếu (ví dụ: 'AAPL' cho Apple)
 ticker = 'AAPL'
-data = yf.download(ticker, start="2020-01-01", end="2020-05-01")
+data = yf.download(ticker, start="2020-01-01", end="2023-01-01")
 
 # Tính giá trung bình
 data['Price'] = data[['Open', 'Close', 'High', 'Low']].mean(axis=1)
@@ -39,11 +41,14 @@ prices = prices[:-1]   # Loại bỏ phần tử cuối cùng của prices
 # Số lượng mẫu
 m = len(volumes)
 
+# Kiểm tra căn chỉnh dữ liệu
+assert len(volumes) == len(prices), "Length mismatch between volumes and prices"
+
 # Khởi tạo tham số
 b = 0
 a = 0
-alpha = 0.00001  # Learning rate
-epochs = 100  # Số lần lặp
+alpha = 0.000001  # Learning rate
+epochs = 1000  # Số lần lặp
 
 # Gradient Descent
 for epoch in range(epochs):
@@ -69,11 +74,30 @@ volume_pred = b + a * prices
 ssr = np.sum((volume_pred - volumes) ** 2)
 print(f"Tổng bình phương của các phần dư (SSR): {ssr}")
 
-# Đánh giá mô hình
+# Sử dụng sklearn để so sánh
+# Chuyển đổi prices thành dạng 2D cho sklearn
+prices_reshaped = prices.reshape(-1, 1)
+
+# Khởi tạo và huấn luyện mô hình LinearRegression của sklearn
+model = LinearRegression()
+model.fit(prices_reshaped, volumes)
+
+# Dự đoán khối lượng giao dịch với sklearn
+volumes_pred_sklearn = model.predict(prices_reshaped)
+
+# Tính SSR cho mô hình sklearn
+ssr_sklearn = mean_squared_error(volumes, volumes_pred_sklearn) * m
+print(f"Tổng bình phương của các phần dư (SSR) với sklearn: {ssr_sklearn}")
+
+# So sánh hệ số hồi quy
+print(f"Hệ số hồi quy (intercept) với sklearn: {model.intercept_}")
+print(f"Hệ số hồi quy (slope) với sklearn: {model.coef_[0]}")
+
 # Vẽ biểu đồ so sánh
 plt.figure(figsize=(10, 6))
-plt.plot(data.index[1:], volumes, label='Thực tế')
-plt.plot(data.index[1:], volume_pred, label='Dự đoán', linestyle='--')
+plt.plot(data.index[1:], volumes, label='Thực tế', marker='o', linestyle='none')
+plt.plot(data.index[1:], volume_pred, label='Dự đoán (tự triển khai)', color='r')
+plt.plot(data.index[1:], volumes_pred_sklearn, label='Dự đoán (sklearn)', color='g', linestyle='--')
 plt.xlabel('Ngày')
 plt.ylabel('Volume')
 plt.title(f'Dự đoán khối lượng giao dịch cho {ticker}')
