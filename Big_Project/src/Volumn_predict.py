@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import StandardScaler
 
 # Tải dữ liệu lịch sử của cổ phiếu (ví dụ: 'AAPL' cho Apple)
 ticker = 'AAPL'
@@ -40,8 +39,9 @@ volumes = volumes[1:]  # Loại bỏ phần tử đầu tiên của volumes
 prices = prices[:-1]   # Loại bỏ phần tử cuối cùng của prices
 
 # Chuẩn hóa dữ liệu
-scaler = StandardScaler()
-prices = scaler.fit_transform(prices.reshape(-1, 1)).flatten()
+mean_price = np.mean(prices)
+std_price = np.std(prices)
+prices = (prices - mean_price) / std_price
 
 # Số lượng mẫu
 m = len(volumes)
